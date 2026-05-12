@@ -10,6 +10,7 @@ import { GameState, Ball, Paddle, Brick, BrickType, PowerUpType, PowerUp, Partic
 import { LEVELS } from './levels';
 import { soundManager } from './services/soundService';
 import {
+  updateLayout,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   PADDLE_WIDTH,
@@ -38,6 +39,23 @@ export default function App() {
   const [lives, setLives] = useState(3);
   const [remainingBricks, setRemainingBricks] = useState(0);
   const [showLevelTransition, setShowLevelTransition] = useState(false);
+  const [dimensions, setDimensions] = useState({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+
+  useEffect(() => {
+    const handleResize = () => {
+      updateLayout();
+      setDimensions({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+      paddleRef.current.y = CANVAS_HEIGHT - PADDLE_BOTTOM_MARGIN - PADDLE_HEIGHT;
+      // Ensure paddle width is updated but stays within bounds
+      paddleRef.current.width = PADDLE_WIDTH;
+      if (paddleRef.current.x > CANVAS_WIDTH - PADDLE_WIDTH) {
+         paddleRef.current.x = CANVAS_WIDTH - PADDLE_WIDTH;
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial setup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Refs for game state to avoid re-renders during loop
   const ballsRef = useRef<Ball[]>([]);
@@ -522,23 +540,23 @@ export default function App() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 select-none bg-[radial-gradient(circle_at_center,_var(--color-slate-800)_0%,_var(--color-slate-900)_100%)]">
       {/* Header Info */}
-      <header className="flex justify-between items-end w-full max-w-[800px] mb-5 px-2">
-        <h1 className="text-2xl font-black tracking-[2px] uppercase text-brand">
+      <header className="flex flex-wrap justify-between items-end w-full max-w-[800px] mb-5 px-2 gap-y-2">
+        <h1 className="text-xl sm:text-2xl font-black tracking-[2px] uppercase text-brand w-full sm:w-auto text-center sm:text-left">
           Neon Breakout
           <span className="block text-[10px] text-slate-500 font-mono tracking-normal normal-case">
             Level {currentLevelIndex + 1}: {LEVELS[currentLevelIndex].name}
           </span>
         </h1>
-        <div className="flex gap-8">
+        <div className="flex gap-4 sm:gap-8 w-full sm:w-auto justify-center sm:justify-end mt-2 sm:mt-0">
           <div className="text-right">
             <div className="text-[10px] uppercase opacity-60 tracking-[1px]">Bricks</div>
-            <div className="text-2xl font-bold font-mono tracking-tighter text-brand">
+            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tighter text-brand">
               {remainingBricks}
             </div>
           </div>
           <div className="text-right">
             <div className="text-[10px] uppercase opacity-60 tracking-[1px]">Level</div>
-            <div className="text-2xl font-bold font-mono tracking-tighter">
+            <div className="text-xl sm:text-2xl font-bold font-mono tracking-tighter">
               {currentLevelIndex + 1}/{LEVELS.length}
             </div>
           </div>
@@ -548,7 +566,7 @@ export default function App() {
               key={score}
               initial={{ scale: 1.2, color: '#38bdf8' }}
               animate={{ scale: 1, color: '#f8fafc' }}
-              className="text-2xl font-bold font-mono tracking-tighter"
+              className="text-xl sm:text-2xl font-bold font-mono tracking-tighter"
             >
               {score.toString().padStart(5, '0')}
             </motion.div>
@@ -579,14 +597,18 @@ export default function App() {
         <div className="scanlines"></div>
         <canvas
           ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
+          width={dimensions.width}
+          height={dimensions.height}
           onMouseMove={handleMouseMove}
+          onTouchStart={(e) => {
+            handleMouseMove(e);
+            if (gameState === GameState.READY && !showLevelTransition) startGame();
+          }}
           onTouchMove={handleMouseMove}
           onClick={() => {
             if (gameState === GameState.READY && !showLevelTransition) startGame();
           }}
-          className="cursor-none touch-none"
+          className="cursor-none touch-none bg-slate-900"
         />
 
         {/* UI Overlays */}
