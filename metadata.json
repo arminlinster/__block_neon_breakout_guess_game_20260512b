@@ -1,0 +1,6 @@
+{
+  "name": "Neon Breakout",
+  "description": "A high-performance neon-styled Breakout game built with React, TypeScript, and HTML5 Canvas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
