@@ -435,18 +435,25 @@ export default function App() {
       if (ball.y + ball.dy < ball.radius) {
         ball.dy = -ball.dy;
         soundManager.playPaddleHit();
-      } else if (ball.y + ball.dy > CANVAS_HEIGHT - ball.radius) {
+      } else if (
+        ball.dy > 0 &&
+        ball.y + ball.radius + ball.dy >= paddle.y &&
+        ball.y - ball.radius <= paddle.y + paddle.height &&
+        ball.x + ball.radius >= paddle.x &&
+        ball.x - ball.radius <= paddle.x + paddle.width
+      ) {
         // Paddle collision
-        if (ball.x > paddle.x && ball.x < paddle.x + paddle.width && ball.y + ball.radius > paddle.y) {
-          const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
-          const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-          ball.dx = hitPoint * currentSpeed;
-          ball.dy = -Math.sqrt(Math.max(0, currentSpeed * currentSpeed - ball.dx * ball.dx));
-          soundManager.playPaddleHit();
-        } else {
-          // Ball lost
-          return false;
-        }
+        const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+        const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+        ball.dx = hitPoint * currentSpeed;
+        const minDy = currentSpeed * 0.2;
+        const calculatedDy = Math.sqrt(Math.max(0, currentSpeed * currentSpeed - ball.dx * ball.dx));
+        ball.dy = -Math.max(minDy, calculatedDy);
+        ball.y = paddle.y - ball.radius; // Push ball out to prevent double collision
+        soundManager.playPaddleHit();
+      } else if (ball.y + ball.radius > CANVAS_HEIGHT) {
+        // Ball lost
+        return false;
       }
 
       // Brick collision
