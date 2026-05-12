@@ -74,6 +74,7 @@ export default function App() {
   const requestRef = useRef<number>(0);
   const rightPressedRef = useRef(false);
   const leftPressedRef = useRef(false);
+  const waitingToLaunchRef = useRef(true);
 
   // Initialize Bricks for a specific level
   const initBricks = (levelIdx: number) => {
@@ -125,18 +126,18 @@ export default function App() {
   };
 
   const resetBallAndPaddle = () => {
-    const speed = INITIAL_BALL_SPEED * LEVELS[currentLevelIndex].speedMultiplier;
     paddleRef.current.x = (CANVAS_WIDTH - PADDLE_WIDTH) / 2;
     paddleRef.current.width = PADDLE_WIDTH;
     
     ballsRef.current = [{
       x: CANVAS_WIDTH / 2,
       y: CANVAS_HEIGHT - PADDLE_BOTTOM_MARGIN - PADDLE_HEIGHT - BALL_RADIUS,
-      dx: speed * (Math.random() > 0.5 ? 1 : -1),
-      dy: -speed,
+      dx: 0,
+      dy: 0,
       radius: BALL_RADIUS,
     }];
     
+    waitingToLaunchRef.current = true;
     powerUpsRef.current = [];
   };
 
@@ -387,6 +388,12 @@ export default function App() {
       paddle.x -= 10;
     }
 
+    // Stick ball to paddle if waiting to launch
+    if (waitingToLaunchRef.current && ballsRef.current.length > 0) {
+      ballsRef.current[0].x = paddle.x + paddle.width / 2;
+      ballsRef.current[0].y = paddle.y - BALL_RADIUS;
+    }
+
     // Update Particles
     particlesRef.current = particlesRef.current.filter(p => {
       p.x += p.dx;
@@ -437,19 +444,21 @@ export default function App() {
         soundManager.playPaddleHit();
       } else if (
         ball.dy > 0 &&
-        ball.y + ball.radius + ball.dy >= paddle.y &&
-        ball.y - ball.radius <= paddle.y + paddle.height &&
-        ball.x + ball.radius >= paddle.x &&
-        ball.x - ball.radius <= paddle.x + paddle.width
+        ball.y + ball.dy + ball.radius >= paddle.y &&
+        ball.y < paddle.y + paddle.height &&
+        ball.x + ball.dx + ball.radius >= paddle.x &&
+        ball.x + ball.dx - ball.radius <= paddle.x + paddle.width
       ) {
         // Paddle collision
-        const hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+        let hitPoint = (ball.x - (paddle.x + paddle.width / 2)) / (paddle.width / 2);
+        hitPoint = Math.max(-0.8, Math.min(0.8, hitPoint)); // clamp to avoid completely horizontal bounce
         const currentSpeed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+        
         ball.dx = hitPoint * currentSpeed;
-        const minDy = currentSpeed * 0.2;
         const calculatedDy = Math.sqrt(Math.max(0, currentSpeed * currentSpeed - ball.dx * ball.dx));
-        ball.dy = -Math.max(minDy, calculatedDy);
-        ball.y = paddle.y - ball.radius; // Push ball out to prevent double collision
+        ball.dy = -Math.max(currentSpeed * 0.3, calculatedDy); // Guarantee minimum upward speed
+        
+        ball.y = paddle.y - ball.radius; // Push ball out to prevent getting stuck
         soundManager.playPaddleHit();
       } else if (ball.y + ball.radius > CANVAS_HEIGHT) {
         // Ball lost
@@ -610,10 +619,22 @@ export default function App() {
           onTouchStart={(e) => {
             handleMouseMove(e);
             if (gameState === GameState.READY && !showLevelTransition) startGame();
+            else if (gameState === GameState.PLAYING && waitingToLaunchRef.current) {
+              waitingToLaunchRef.current = false;
+              const speed = INITIAL_BALL_SPEED * LEVELS[currentLevelIndex].speedMultiplier;
+              ballsRef.current[0].dx = speed * (Math.random() > 0.5 ? 1 : -1);
+              ballsRef.current[0].dy = -speed;
+            }
           }}
           onTouchMove={handleMouseMove}
           onClick={() => {
             if (gameState === GameState.READY && !showLevelTransition) startGame();
+            else if (gameState === GameState.PLAYING && waitingToLaunchRef.current) {
+              waitingToLaunchRef.current = false;
+              const speed = INITIAL_BALL_SPEED * LEVELS[currentLevelIndex].speedMultiplier;
+              ballsRef.current[0].dx = speed * (Math.random() > 0.5 ? 1 : -1);
+              ballsRef.current[0].dy = -speed;
+            }
           }}
           className="cursor-none touch-none bg-slate-900"
         />
@@ -712,8 +733,8 @@ export default function App() {
       </div>
 
       {/* Footer Instructions */}
-      <footer className="mt-5 text-slate-50 opacity-50 text-[12px] tracking-[0.5px] font-mono uppercase">
-        USE MOUSE TO MOVE PADDLE • CLICK TO START
+      <footer className="mt-5 text-slate-50 opacity-50 text-[12px] tracking-[0.5px] font-mono uppercase text-center px-4">
+        USE TOUCH / MOUSE TO MOVE PADDLE • TAP TO LAUNCH BALL
       </footer>
     </div>
   );
