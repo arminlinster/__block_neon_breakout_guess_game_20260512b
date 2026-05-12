@@ -13,7 +13,7 @@ export const PADDLE_HEIGHT = 15;
 export const PADDLE_BOTTOM_MARGIN = isMobile ? 60 : 30;
 
 export const BALL_RADIUS = isMobile ? 6 : 8;
-export const INITIAL_BALL_SPEED = isMobile ? 4 : 5;
+export const INITIAL_BALL_SPEED = isMobile ? 2.5 : 3.5;
 
 export const BRICK_ROWS = 6;
 export const BRICK_COLS = 9;
