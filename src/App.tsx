@@ -558,7 +558,7 @@ export default function App() {
       {/* Header Info */}
       <header className="flex flex-wrap justify-between items-end w-full max-w-[800px] mb-5 px-2 gap-y-2">
         <h1 className="text-xl sm:text-2xl font-black tracking-[2px] uppercase text-brand w-full sm:w-auto text-center sm:text-left">
-          Neon Breakout
+          55 Neon Breakout
           <span className="block text-[10px] text-slate-500 font-mono tracking-normal normal-case">
             Level {currentLevelIndex + 1}: {LEVELS[currentLevelIndex].name}
           </span>
